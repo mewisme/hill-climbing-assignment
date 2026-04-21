@@ -1,0 +1,11 @@
+TTĐ: A20
+TTKT: B0
+
+A: C15 D6 E7
+C: F10
+D: I8 F10
+E: K12 G5
+F: B0
+I: B0 G5
+G: H3 B0
+H: B0
