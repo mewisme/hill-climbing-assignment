@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx main.ts",
+    "start": "node main.js",
     "build": "tsc"
   },
   "dependencies": {

@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs'
+import { appendFileSync, readFileSync, writeFileSync } from 'node:fs'
 
 const INPUT_FILE = 'input.txt'
 const OUTPUT_FILE = 'output.txt'
@@ -13,6 +13,14 @@ interface Input {
 
 const formatPeak = ([n, h]: Peak) => `${n}-${h}`
 const formatList = (x: Peak[]) => x.map(formatPeak).join(' ')
+
+const formatLogLine = (s: {
+  expanded: Peak
+  neighbors: Peak[]
+  l1: Peak[]
+  l: Peak[]
+}) =>
+  `${formatPeak(s.expanded).padEnd(16)}\t${formatList(s.neighbors).padEnd(24)}\t${formatList(s.l1).padEnd(24)}\t${formatList(s.l)}`
 
 const parsePeak = (s: string): Peak => {
   const [, n, h] = s.match(/^([A-Za-z])(\d{1,2})$/) ?? []
@@ -39,17 +47,43 @@ function parseInput(content: string): Input {
 }
 
 function runHillClimbing(input: Input) {
+  writeFileSync(OUTPUT_FILE, '', 'utf-8')
+  const append = (line: string) => appendFileSync(OUTPUT_FILE, line + '\n', 'utf-8')
+
+  append(`TTĐ: ${formatPeak(input.start)}`)
+  append(`TTKT: ${formatPeak(input.goal)}`)
+  append('')
+  append(
+    'Phát triển TT'.padEnd(16) +
+      '\t' +
+      'Trạng thái kề'.padEnd(24) +
+      '\t' +
+      'Danh sách L1'.padEnd(24) +
+      '\tDanh sách L'
+  )
+  append('-'.repeat(100))
+  append(
+    `${''.padEnd(16)}\t${''.padEnd(24)}\t${''.padEnd(24)}\t${formatPeak(input.start)}`
+  )
+
   const visited = new Set<string>()
   const father: Record<string, string | null> = { [input.start[0]]: null }
   const heuristic: Record<string, number> = { [input.start[0]]: input.start[1] }
 
   const L = [{ peak: input.start, parent: null as string | null }]
-  const logs: {
-    expanded: Peak
-    neighbors: Peak[]
-    l1: Peak[]
-    l: Peak[]
-  }[] = []
+
+  const finish = (status: boolean, path: Peak[]) => {
+    append('')
+    append(`Status: ${status}`)
+    append(
+      `Path: ${
+        path.length
+          ? path.map(formatPeak).join(' -> ')
+          : 'Không tìm thấy đường đi'
+      }`
+    )
+    return { status, path }
+  }
 
   while (L.length) {
     const { peak, parent } = L.shift()!
@@ -77,12 +111,14 @@ function runHillClimbing(input: Input) {
       else L[idx] = { peak: next, parent: node }
     }
 
-    logs.push({
-      expanded: peak,
-      neighbors,
-      l1: [...L1].reverse(),
-      l: L.map(x => x.peak)
-    })
+    append(
+      formatLogLine({
+        expanded: peak,
+        neighbors,
+        l1: [...L1].reverse(),
+        l: L.map(x => x.peak)
+      })
+    )
 
     if (node === input.goal[0]) {
       const path: Peak[] = []
@@ -91,39 +127,13 @@ function runHillClimbing(input: Input) {
         path.push([cur, heuristic[cur]])
       }
 
-      return { status: true, logs, path: path.reverse() }
+      return finish(true, path.reverse())
     }
   }
 
-  return { status: false, logs, path: [] as Peak[] }
+  return finish(false, [])
 }
 
 const input = parseInput(readFileSync(INPUT_FILE, 'utf-8'))
-const result = runHillClimbing(input)
-
-const output = [
-  `TTĐ: ${formatPeak(input.start)}`,
-  `TTKT: ${formatPeak(input.goal)}`,
-  '',
-  'Phát triển TT'.padEnd(16) +
-  '\t' +
-  'Trạng thái kề'.padEnd(24) +
-  '\t' +
-  'Danh sách L1'.padEnd(24) +
-  '\tDanh sách L',
-  '-'.repeat(100),
-  `${''.padEnd(16)}\t${''.padEnd(24)}\t${''.padEnd(24)}\t${formatPeak(input.start)}`,
-  ...result.logs.map(
-    s =>
-      `${formatPeak(s.expanded).padEnd(16)}\t${formatList(s.neighbors).padEnd(24)}\t${formatList(s.l1).padEnd(24)}\t${formatList(s.l)}`
-  ),
-  '',
-  `Status: ${result.status}`,
-  `Path: ${result.path.length
-    ? result.path.map(formatPeak).join(' -> ')
-    : 'Không tìm thấy đường đi'
-  }`
-].join('\n')
-
-writeFileSync(OUTPUT_FILE, output)
-console.log(output)
+runHillClimbing(input)
+console.log(readFileSync(OUTPUT_FILE, 'utf-8'))
