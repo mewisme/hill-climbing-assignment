@@ -3,7 +3,8 @@ const INPUT_FILE = 'input.txt';
 const OUTPUT_FILE = 'output.txt';
 const formatPeak = ([n, h]) => `${n}-${h}`;
 const formatList = (x) => x.map(formatPeak).join(' ');
-const formatLogLine = (s) => `${formatPeak(s.expanded).padEnd(16)}\t${formatList(s.neighbors).padEnd(24)}\t${formatList(s.l1).padEnd(24)}\t${formatList(s.l)}`;
+const formatNeighbors = (n) => (typeof n === 'string' ? n : formatList(n));
+const formatLogLine = (s) => `${formatPeak(s.expanded).padEnd(16)}\t${formatNeighbors(s.neighbors).padEnd(24)}\t${formatList(s.l1).padEnd(24)}\t${formatList(s.l)}`;
 const finish = (append, status, path) => {
     append('');
     append(`Status: ${status}`);
@@ -52,7 +53,7 @@ function runHillClimbing(input) {
         const neighbors = input.graph[node] ?? [];
         const L1 = neighbors
             .filter(([n]) => !visited.has(n))
-            .sort((a, b) => a[1] - b[1]);
+            .sort((a, b) => a[1] - b[1]); // Sắp xếp theo độ cao tăng dần
         for (const next of L1.reverse()) {
             const [n, nh] = next;
             heuristic[n] = nh;
@@ -62,14 +63,16 @@ function runHillClimbing(input) {
             else
                 L[idx] = { peak: next, parent: node };
         }
-        append(formatLogLine({ expanded: peak, neighbors, l1: [...L1].reverse(), l: L.map(x => x.peak) }));
         if (node === input.goal[0]) {
+            L.length = 0;
+            append(formatLogLine({ expanded: peak, neighbors: 'TTKT/Dừng', l1: [...L1].reverse(), l: [] }));
             const path = [];
             for (let cur = node; cur; cur = father[cur]) {
                 path.push([cur, heuristic[cur]]);
             }
             return finish(append, true, path.reverse());
         }
+        append(formatLogLine({ expanded: peak, neighbors, l1: [...L1].reverse(), l: L.map(x => x.peak) }));
     }
     return finish(append, false, []);
 }

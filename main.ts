@@ -14,17 +14,20 @@ interface Input {
 const formatPeak = ([n, h]: Peak) => `${n}-${h}`
 const formatList = (x: Peak[]) => x.map(formatPeak).join(' ')
 
+const formatNeighbors = (n: Peak[] | string) => (typeof n === 'string' ? n : formatList(n))
+
 const formatLogLine = (s: {
   expanded: Peak
-  neighbors: Peak[]
+  neighbors: Peak[] | string
   l1: Peak[]
   l: Peak[]
-}) => `${formatPeak(s.expanded).padEnd(16)}\t${formatList(s.neighbors).padEnd(24)}\t${formatList(s.l1).padEnd(24)}\t${formatList(s.l)}`
+}) =>
+  `${formatPeak(s.expanded).padEnd(16)}\t${formatNeighbors(s.neighbors).padEnd(24)}\t${formatList(s.l1).padEnd(24)}\t${formatList(s.l)}`
 
 const finish = (append: (line: string) => void, status: boolean, path: Peak[]) => {
   append('')
   append(`Status: ${status}`)
-  append(`Path: ${path.length? path.map(formatPeak).join(' -> ') : 'Không tìm thấy đường đi'}`)
+  append(`Path: ${path.length ? path.map(formatPeak).join(' -> ') : 'Không tìm thấy đường đi'}`)
   return { status, path }
 }
 
@@ -51,7 +54,7 @@ function runHillClimbing(input: Input) {
 
   append(`TTĐ: ${formatPeak(input.start)}`)
   append(`TTKT: ${formatPeak(input.goal)}\n`)
-  append('Phát triển TT'.padEnd(16) +'\t' +'Trạng thái kề'.padEnd(24) +'\t' +'Danh sách L1'.padEnd(24) +'\tDanh sách L')
+  append('Phát triển TT'.padEnd(16) + '\t' + 'Trạng thái kề'.padEnd(24) + '\t' + 'Danh sách L1'.padEnd(24) + '\tDanh sách L')
   append('-'.repeat(100))
   append(`${''.padEnd(16)}\t${''.padEnd(24)}\t${''.padEnd(24)}\t${formatPeak(input.start)}`)
 
@@ -75,7 +78,7 @@ function runHillClimbing(input: Input) {
 
     const L1 = neighbors
       .filter(([n]) => !visited.has(n))
-      .sort((a, b) => a[1] - b[1])
+      .sort((a, b) => a[1] - b[1]) // Sắp xếp theo độ cao tăng dần
 
     for (const next of L1.reverse()) {
       const [n, nh] = next
@@ -87,9 +90,9 @@ function runHillClimbing(input: Input) {
       else L[idx] = { peak: next, parent: node }
     }
 
-    append(formatLogLine({ expanded: peak, neighbors, l1: [...L1].reverse(), l: L.map(x => x.peak) }))
-
     if (node === input.goal[0]) {
+      L.length = 0
+      append(formatLogLine({ expanded: peak, neighbors: 'TTKT/Dừng', l1: [...L1].reverse(), l: [] }))
       const path: Peak[] = []
 
       for (let cur: string | null = node; cur; cur = father[cur]) {
@@ -98,6 +101,8 @@ function runHillClimbing(input: Input) {
 
       return finish(append, true, path.reverse())
     }
+
+    append(formatLogLine({ expanded: peak, neighbors, l1: [...L1].reverse(), l: L.map(x => x.peak) }))
   }
 
   return finish(append, false, [])
