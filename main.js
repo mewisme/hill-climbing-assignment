@@ -4,17 +4,21 @@ const OUTPUT_FILE = 'output.txt';
 const formatPeak = ([n, h]) => `${n}-${h}`;
 const formatList = (x) => x.map(formatPeak).join(' ');
 const formatLogLine = (s) => `${formatPeak(s.expanded).padEnd(16)}\t${formatList(s.neighbors).padEnd(24)}\t${formatList(s.l1).padEnd(24)}\t${formatList(s.l)}`;
+const finish = (append, status, path) => {
+    append('');
+    append(`Status: ${status}`);
+    append(`Path: ${path.length ? path.map(formatPeak).join(' -> ') : 'Không tìm thấy đường đi'}`);
+    return { status, path };
+};
 const parsePeak = (s) => {
     const [, n, h] = s.match(/^([A-Za-z])(\d{1,2})$/) ?? [];
     if (!n)
         throw new Error('Sai định dạng');
     return [n, +h];
 };
-function parseInput(content) {
-    return content
-        .split(/\r?\n/)
-        .filter(Boolean)
-        .reduce((acc, line) => {
+const parseInput = (content) => {
+    const acc = { start: ['', 0], goal: ['', 0], graph: {} };
+    for (const line of content.split(/\r?\n/).filter(Boolean)) {
         const [k, v = ''] = line.split(':').map(x => x.trim());
         if (k === 'TTĐ')
             acc.start = parsePeak(v);
@@ -22,29 +26,21 @@ function parseInput(content) {
             acc.goal = parsePeak(v);
         else
             acc.graph[k] = v.split(/\s+/).map(parsePeak);
-        return acc;
-    }, { start: ['', 0], goal: ['', 0], graph: {} });
-}
+    }
+    return acc;
+};
 function runHillClimbing(input) {
     writeFileSync(OUTPUT_FILE, '', 'utf-8');
     const append = (line) => appendFileSync(OUTPUT_FILE, line + '\n', 'utf-8');
     append(`TTĐ: ${formatPeak(input.start)}`);
     append(`TTKT: ${formatPeak(input.goal)}\n`);
-    append(`Phát triển TT${' '.repeat(16)}\tTrạng thái kề${' '.repeat(24)}\tDanh sách L1${' '.repeat(24)}\tDanh sách L\n`);
+    append('Phát triển TT'.padEnd(16) + '\t' + 'Trạng thái kề'.padEnd(24) + '\t' + 'Danh sách L1'.padEnd(24) + '\tDanh sách L');
     append('-'.repeat(100));
-    append(`${' '.repeat(16)}\t${' '.repeat(24)}\t${' '.repeat(24)}\t${formatPeak(input.start)}\n`);
+    append(`${''.padEnd(16)}\t${''.padEnd(24)}\t${''.padEnd(24)}\t${formatPeak(input.start)}`);
     const visited = new Set();
     const father = { [input.start[0]]: null };
     const heuristic = { [input.start[0]]: input.start[1] };
     const L = [{ peak: input.start, parent: null }];
-    const finish = (status, path) => {
-        append('');
-        append(`Status: ${status}`);
-        append(`Path: ${path.length
-            ? path.map(formatPeak).join(' -> ')
-            : 'Không tìm thấy đường đi'}`);
-        return { status, path };
-    };
     while (L.length) {
         const { peak, parent } = L.shift();
         const [node, h] = peak;
@@ -66,22 +62,16 @@ function runHillClimbing(input) {
             else
                 L[idx] = { peak: next, parent: node };
         }
-        append(formatLogLine({
-            expanded: peak,
-            neighbors,
-            l1: [...L1].reverse(),
-            l: L.map(x => x.peak)
-        }));
+        append(formatLogLine({ expanded: peak, neighbors, l1: [...L1].reverse(), l: L.map(x => x.peak) }));
         if (node === input.goal[0]) {
             const path = [];
             for (let cur = node; cur; cur = father[cur]) {
                 path.push([cur, heuristic[cur]]);
             }
-            return finish(true, path.reverse());
+            return finish(append, true, path.reverse());
         }
     }
-    return finish(false, []);
+    return finish(append, false, []);
 }
-const input = parseInput(readFileSync(INPUT_FILE, 'utf-8'));
-runHillClimbing(input);
+runHillClimbing(parseInput(readFileSync(INPUT_FILE, 'utf-8')));
 console.log(readFileSync(OUTPUT_FILE, 'utf-8'));
