@@ -78,7 +78,7 @@ function runHillClimbing(input: Input) {
 
     const L1 = neighbors
       .filter(([n]) => !visited.has(n))
-      .sort((a, b) => a[1] - b[1]) // Sắp xếp theo độ cao tăng dần
+      .sort((a, b) => a[1] - b[1]) // tăng dần
 
     for (const next of L1.reverse()) {
       const [n, nh] = next
@@ -86,16 +86,16 @@ function runHillClimbing(input: Input) {
 
       const idx = L.findIndex(x => x.peak[0] === n)
 
-      if (idx === -1) L.unshift({ peak: next, parent: node })
-      else L[idx] = { peak: next, parent: node }
+      if (idx === -1) L.unshift({ peak: next, parent: node }) // FIFO
+      else L[idx] = { peak: next, parent: node } // replace
     }
 
-    if (node === input.goal[0]) {
+    if (node === input.goal[0]) { // đạt đích
       L.length = 0
       append(formatLogLine({ expanded: peak, neighbors: 'TTKT/Dừng', l1: [...L1].reverse(), l: [] }))
       const path: Peak[] = []
 
-      for (let cur: string | null = node; cur; cur = father[cur]) {
+      for (let cur: string | null = node; cur; cur = father[cur]) { // tạo đường đi
         path.push([cur, heuristic[cur]])
       }
 
